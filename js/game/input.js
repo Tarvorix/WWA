@@ -34,10 +34,12 @@ export class InputManager {
         // Touch state
         this.touchCount = 0;
         this.touchStartPositions = []; // array of {x, y}
+        this.touchStartTime = 0;
         this.initialPinchDistance = 0;
         this.isTouchPanning = false;
         this.isTouchPinching = false;
         this.touchPanLast = { x: 0, y: 0 };
+        this.touchTapMaxDuration = 300; // ms — taps shorter than this always register regardless of drift
 
         // Callbacks
         this._onTileClick = null;
@@ -63,6 +65,7 @@ export class InputManager {
         this._onTouchStart = this._handleTouchStart.bind(this);
         this._onTouchMove = this._handleTouchMove.bind(this);
         this._onTouchEnd = this._handleTouchEnd.bind(this);
+        this._onTouchCancel = this._handleTouchCancel.bind(this);
 
         // Track whether mousedown started on our canvas
         this._mouseDownOnCanvas = false;
@@ -78,6 +81,7 @@ export class InputManager {
         this.canvas.addEventListener('touchstart', this._onTouchStart, { passive: false });
         this.canvas.addEventListener('touchmove', this._onTouchMove, { passive: false });
         this.canvas.addEventListener('touchend', this._onTouchEnd);
+        this.canvas.addEventListener('touchcancel', this._onTouchCancel);
         window.addEventListener('keydown', this._onKeyDown);
         window.addEventListener('keyup', this._onKeyUp);
 
@@ -322,6 +326,7 @@ export class InputManager {
 
         this.touchCount = e.touches.length;
         this.touchStartPositions = [];
+        this.touchStartTime = performance.now();
 
         for (let i = 0; i < e.touches.length; i++) {
             this.touchStartPositions.push({
@@ -395,16 +400,35 @@ export class InputManager {
             return;
         }
 
-        // If single touch ended without panning, treat as tap (click)
-        if (this.touchCount === 1 && !this.isTouchPanning && this.touchStartPositions.length > 0) {
-            const tx = this.touchStartPositions[0].x;
-            const ty = this.touchStartPositions[0].y;
-            this._handleTap(tx, ty);
+        // Determine if this was a tap or a pan.
+        // On iOS, even a stationary tap can drift 10-15+ pixels due to finger
+        // contact area and touch prediction — same issue as MacBook trackpad
+        // (see _handleMouseUp comment). Fix: if touch duration is short, always
+        // treat as a tap regardless of drift. Long touches only tap if no pan.
+        if (this.touchCount === 1 && this.touchStartPositions.length > 0) {
+            const touchDuration = performance.now() - this.touchStartTime;
+            const isQuickTap = touchDuration < this.touchTapMaxDuration;
+
+            if (isQuickTap || !this.isTouchPanning) {
+                const tx = this.touchStartPositions[0].x;
+                const ty = this.touchStartPositions[0].y;
+                this._handleTap(tx, ty);
+            }
         }
 
         this.touchCount = e.touches.length;
         this.isTouchPanning = false;
         this.isTouchPinching = false;
+    }
+
+    _handleTouchCancel(e) {
+        // iOS fires touchcancel frequently (notifications, system gestures,
+        // control center, etc.). Reset all touch state to prevent stuck state
+        // that would cause subsequent taps to silently fail.
+        this.touchCount = e.touches.length;
+        this.isTouchPanning = false;
+        this.isTouchPinching = false;
+        this.touchStartPositions = [];
     }
 
     _getTouchDistance(t1, t2) {
@@ -567,6 +591,7 @@ export class InputManager {
         this.canvas.removeEventListener('touchstart', this._onTouchStart);
         this.canvas.removeEventListener('touchmove', this._onTouchMove);
         this.canvas.removeEventListener('touchend', this._onTouchEnd);
+        this.canvas.removeEventListener('touchcancel', this._onTouchCancel);
         this.canvas.removeEventListener('click', this._onClick);
         window.removeEventListener('keydown', this._onKeyDown);
         window.removeEventListener('keyup', this._onKeyUp);
