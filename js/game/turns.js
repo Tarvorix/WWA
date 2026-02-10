@@ -698,14 +698,7 @@ export class TurnManager {
                 console.warn('[TurnManager] Ignoring game:restart because game over screen is not visible');
                 return;
             }
-            // DEBUG: block reload temporarily to confirm this is the culprit
-            console.error('[TurnManager] game:restart triggered — reload BLOCKED for debugging');
-            console.trace('[TurnManager] game:restart call stack');
-            const d = document.getElementById('loading-status') || document.createElement('div');
-            d.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:20px;background:red;color:white;z-index:9999;font-size:18px;';
-            d.textContent = 'DEBUG: game:restart fired! Reload blocked. Check console.';
-            document.body.appendChild(d);
-            // window.location.reload();  // TEMPORARILY DISABLED
+            window.location.reload();
         });
     }
 
