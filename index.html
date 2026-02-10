@@ -160,6 +160,18 @@
         <div id="loading-status">Initializing...</div>
     </div>
 
+    <!-- iOS Debug: catch and display errors on screen (no dev tools on mobile) -->
+    <script>
+    window.onerror = function(msg, src, line, col, err) {
+        var d = document.getElementById('loading-status');
+        if (d) { d.style.color = '#ff4444'; d.textContent = msg + ' (' + src + ':' + line + ')'; }
+    };
+    window.addEventListener('unhandledrejection', function(e) {
+        var d = document.getElementById('loading-status');
+        if (d) { d.style.color = '#ff4444'; d.textContent = 'Promise: ' + (e.reason && e.reason.message || e.reason); }
+    });
+    </script>
+
     <!-- Game Entry Point -->
     <script type="module" src="js/game/main.js"></script>
 </body>
