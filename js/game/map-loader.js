@@ -181,22 +181,20 @@ export class MapLoader {
             );
         }
 
-        // Normal map (may be EXR or JPG)
-        if (texConfig.normal) {
-            const isEXR = texConfig.normal.endsWith('.exr');
+        // Normal map — skip EXR files (Safari crashes when sampling half-float textures)
+        if (texConfig.normal && !texConfig.normal.endsWith('.exr')) {
             loadPromises.push(
-                this._loadTexture(basePath + texConfig.normal, isEXR)
+                this._loadTexture(basePath + texConfig.normal)
                     .then(tex => {
                         if (tex) result.normalMap = configureTexture(tex);
                     })
             );
         }
 
-        // Roughness map (may be EXR or JPG)
-        if (texConfig.roughness) {
-            const isEXR = texConfig.roughness.endsWith('.exr');
+        // Roughness map — skip EXR files (same Safari issue)
+        if (texConfig.roughness && !texConfig.roughness.endsWith('.exr')) {
             loadPromises.push(
-                this._loadTexture(basePath + texConfig.roughness, isEXR)
+                this._loadTexture(basePath + texConfig.roughness)
                     .then(tex => {
                         if (tex) result.roughnessMap = configureTexture(tex);
                     })
