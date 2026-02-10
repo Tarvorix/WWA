@@ -94,6 +94,27 @@ export class UnitManager {
                     // Use the first animation clip from each file
                     cache.clips[animName] = gltf.animations[0];
                 }
+
+                // Dispose non-idle GLTF scenes — they contain duplicate mesh/texture data
+                // that wastes GPU memory. We only need the animation clips from them.
+                if (animName !== 'idle') {
+                    gltf.scene.traverse((child) => {
+                        if (child.isMesh) {
+                            if (child.geometry) child.geometry.dispose();
+                            if (child.material) {
+                                const materials = Array.isArray(child.material) ? child.material : [child.material];
+                                for (const mat of materials) {
+                                    for (const key of Object.keys(mat)) {
+                                        if (mat[key] && mat[key].isTexture) {
+                                            mat[key].dispose();
+                                        }
+                                    }
+                                    mat.dispose();
+                                }
+                            }
+                        }
+                    });
+                }
             } catch (err) {
                 console.warn(`UnitManager: Failed to load ${path}:`, err);
             }

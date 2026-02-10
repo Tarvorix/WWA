@@ -90,6 +90,24 @@ async function init() {
         const container = document.getElementById('game-container');
         container.appendChild(renderer.domElement);
 
+        // WebGL context loss detection
+        const canvas = renderer.domElement;
+        canvas.addEventListener('webglcontextlost', (e) => {
+            e.preventDefault();
+            console.error('[CRASH] WebGL context LOST');
+            const title = document.getElementById('loading-title');
+            if (title) title.textContent = 'WebGL CONTEXT LOST';
+            const status = document.getElementById('loading-status');
+            if (status) { status.style.color = '#ff4444'; status.textContent = 'GPU killed the rendering context'; }
+            const ls = document.getElementById('loading-screen');
+            if (ls) { ls.style.display = 'flex'; ls.style.opacity = '1'; ls.classList.remove('fade-out'); }
+            sessionStorage.setItem('_unloadReason', 'WebGL context lost');
+        });
+        canvas.addEventListener('webglcontextrestored', () => {
+            console.log('[CRASH] WebGL context restored');
+            sessionStorage.setItem('_unloadReason', 'WebGL context lost then restored');
+        });
+
         // 2. Create Scene
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a0a2e); // dark purple — distinguishable from black ground
@@ -136,6 +154,11 @@ async function init() {
         console.log('[Main] Camera position:', cameraController.getCamera().position);
         console.log('[Main] Camera zoom:', cameraController.currentZoom);
 
+        // Warm-up render: force GPU to compile shaders and upload textures for map
+        // This spreads GPU work across loading instead of slamming everything on frame 1
+        renderer.render(scene, cameraController.getCamera());
+        await new Promise(r => setTimeout(r, 50)); // yield to let GPU finish
+
         // 10. Set up post-processing pipeline
         updateLoadingProgress('Setting up post-processing...', 0.65);
         setupPostProcessing();
@@ -155,7 +178,16 @@ async function init() {
         // 13. Spawn squads
         updateLoadingProgress('Deploying units...', 0.82);
         unitManager.spawnSquad('orderOfTheAbyss');
+
+        // Warm-up render: upload first faction's textures/shaders to GPU
+        renderer.render(scene, cameraController.getCamera());
+        await new Promise(r => setTimeout(r, 50));
+
         unitManager.spawnSquad('germani');
+
+        // Warm-up render: upload second faction's textures/shaders to GPU
+        renderer.render(scene, cameraController.getCamera());
+        await new Promise(r => setTimeout(r, 50));
 
         // Register unit meshes for input raycasting
         inputManager.registerUnitMeshes(unitManager.getUnitMeshList());
