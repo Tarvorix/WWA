@@ -159,9 +159,10 @@ async function init() {
         renderer.render(scene, cameraController.getCamera());
         await new Promise(r => setTimeout(r, 50)); // yield to let GPU finish
 
-        // 10. Set up post-processing pipeline
-        updateLoadingProgress('Setting up post-processing...', 0.65);
-        setupPostProcessing();
+        // 10. Post-processing pipeline — SKIP setup entirely while disabled
+        // setupPostProcessing() allocates ~300 MB of GPU render targets even when
+        // usePostProcessing is false. Don't create them until post-processing is enabled.
+        // setupPostProcessing();
 
         // 11. Create VFX Manager
         vfxManager = new VFXManager(scene);
