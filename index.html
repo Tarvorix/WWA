@@ -160,16 +160,50 @@
         <div id="loading-status">Initializing...</div>
     </div>
 
-    <!-- iOS Debug: catch and display errors on screen (no dev tools on mobile) -->
+    <!-- iOS Debug: catch errors + track reloads -->
     <script>
-    window.onerror = function(msg, src, line, col, err) {
-        var d = document.getElementById('loading-status');
-        if (d) { d.style.color = '#ff4444'; d.textContent = msg + ' (' + src + ':' + line + ')'; }
-    };
-    window.addEventListener('unhandledrejection', function(e) {
-        var d = document.getElementById('loading-status');
-        if (d) { d.style.color = '#ff4444'; d.textContent = 'Promise: ' + (e.reason && e.reason.message || e.reason); }
-    });
+    (function() {
+        // Track reload count via sessionStorage
+        var count = parseInt(sessionStorage.getItem('_loadCount') || '0', 10) + 1;
+        sessionStorage.setItem('_loadCount', count);
+        sessionStorage.setItem('_loadTime', Date.now());
+
+        // Show load count on the loading title so user can see it
+        var title = document.getElementById('loading-title');
+        if (title && count > 1) {
+            title.textContent = 'Slimline Tactical (load #' + count + ')';
+        }
+
+        // Check if previous load recorded a reason for unloading
+        var reason = sessionStorage.getItem('_unloadReason');
+        if (reason && count > 1) {
+            var d = document.getElementById('loading-status');
+            if (d) { d.style.color = '#ffaa00'; d.textContent = 'Reload detected: ' + reason; }
+        }
+        sessionStorage.removeItem('_unloadReason');
+
+        // Track WHY the page unloads
+        window.addEventListener('beforeunload', function() {
+            sessionStorage.setItem('_unloadReason', 'beforeunload at ' + (Date.now() - parseInt(sessionStorage.getItem('_loadTime') || '0', 10)) + 'ms');
+        });
+
+        // Intercept location.reload to record it
+        var origReload = window.location.reload.bind(window.location);
+        window.location.reload = function() {
+            sessionStorage.setItem('_unloadReason', 'location.reload() called');
+            origReload();
+        };
+
+        // Error handlers
+        window.onerror = function(msg, src, line, col, err) {
+            var d = document.getElementById('loading-status');
+            if (d) { d.style.color = '#ff4444'; d.textContent = msg + ' (' + src + ':' + line + ')'; }
+        };
+        window.addEventListener('unhandledrejection', function(e) {
+            var d = document.getElementById('loading-status');
+            if (d) { d.style.color = '#ff4444'; d.textContent = 'Promise: ' + (e.reason && e.reason.message || e.reason); }
+        });
+    })();
     </script>
 
     <!-- Game Entry Point -->
