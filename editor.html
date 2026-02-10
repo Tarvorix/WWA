@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slimline Tactical — Map Editor</title>
+    <link rel="stylesheet" href="css/editor.css">
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.182.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+
+    <div id="editor-layout">
+
+        <!-- ============ Sidebar ============ -->
+        <div id="editor-sidebar">
+
+            <!-- Map Settings -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Map Settings</div>
+
+                <div class="settings-row">
+                    <span class="settings-label">Name</span>
+                    <input type="text" id="map-name" class="settings-input settings-input-wide" value="Untitled Map" spellcheck="false">
+                </div>
+
+                <div class="settings-row">
+                    <span class="settings-label">Width</span>
+                    <input type="number" id="grid-width" class="settings-input" value="20" min="6" max="40">
+                </div>
+
+                <div class="settings-row">
+                    <span class="settings-label">Height</span>
+                    <input type="number" id="grid-height" class="settings-input" value="16" min="6" max="40">
+                </div>
+
+                <div class="settings-row">
+                    <span class="settings-label">Texture</span>
+                    <select id="ground-texture" class="settings-select">
+                        <option value="dirt" selected>Dirt</option>
+                        <option value="rock_2">Rock</option>
+                        <option value="rock_face">Rock Face</option>
+                        <option value="sparse_grass">Sparse Grass</option>
+                    </select>
+                </div>
+
+                <div class="settings-row" style="justify-content: flex-end; margin-top: 4px;">
+                    <button id="btn-apply-grid" class="settings-btn-small">Apply Grid</button>
+                </div>
+            </div>
+
+            <!-- Object Palette -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Object Palette</div>
+                <div id="palette-list" class="palette-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Spawn Zones -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Spawn Zones</div>
+                <div class="spawn-buttons">
+                    <button id="btn-spawn-abyss" class="spawn-btn abyss">Paint Abyss Spawns</button>
+                    <button id="btn-spawn-germani" class="spawn-btn germani">Paint Germani Spawns</button>
+                    <button id="btn-spawn-clear" class="spawn-btn clear-spawn">Clear Spawn Paint</button>
+                </div>
+            </div>
+
+            <!-- Lights -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Point Lights</div>
+                <div class="spawn-buttons">
+                    <button id="btn-place-light" class="settings-btn-small" style="width: 100%;">Place Light</button>
+                </div>
+                <div class="settings-row" style="margin-top: 8px;">
+                    <span class="settings-label">Color</span>
+                    <input type="color" id="light-color" value="#ff4422" class="settings-input" style="width: 40px; padding: 2px; cursor: pointer;">
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Intensity</span>
+                    <input type="number" id="light-intensity" class="settings-input" value="2.0" min="0.1" max="10" step="0.1">
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Radius</span>
+                    <input type="number" id="light-radius" class="settings-input" value="5.0" min="1" max="20" step="0.5">
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Height</span>
+                    <input type="number" id="light-height" class="settings-input" value="0.5" min="0.1" max="5" step="0.1">
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ============ Canvas Area ============ -->
+        <div id="editor-container">
+
+            <!-- Toolbar -->
+            <div id="editor-toolbar">
+                <button id="btn-export" class="toolbar-btn">Export</button>
+                <button id="btn-import" class="toolbar-btn">Import</button>
+                <button id="btn-preview" class="toolbar-btn">Preview</button>
+                <button id="btn-clear" class="toolbar-btn danger">Clear All</button>
+            </div>
+
+            <!-- Status Bar -->
+            <div id="editor-status">
+                <div class="status-item">Tool: <span id="status-tool">Select</span></div>
+                <div class="status-item">Tile: <span id="status-tile">—</span></div>
+                <div class="status-item">Objects: <span id="status-objects">0</span></div>
+            </div>
+
+            <!-- Help Overlay -->
+            <div id="editor-help">
+                <kbd>LMB</kbd> Place / Paint<br>
+                <kbd>RMB</kbd> Remove<br>
+                <kbd>MMB</kbd> Pan Camera<br>
+                <kbd>Scroll</kbd> Zoom<br>
+                <kbd>R</kbd> Rotate Object<br>
+                <kbd>P</kbd> Toggle Preview<br>
+                <kbd>Esc</kbd> Deselect Tool
+            </div>
+
+        </div>
+
+    </div>
+
+    <script type="module" src="js/editor/main.js"></script>
+
+</body>
+</html>

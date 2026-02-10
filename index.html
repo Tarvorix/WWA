@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Slimline Tactical</title>
+    <link rel="stylesheet" href="css/game.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.182.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <!-- Three.js Canvas Container -->
+    <div id="game-container"></div>
+
+    <!-- HUD Overlay -->
+    <div id="hud">
+        <!-- Top Bar -->
+        <div id="top-bar" class="hud-interactive">
+            <div id="top-bar-left">
+                <span id="turn-number">Turn 1</span>
+                <span id="faction-name">Order of the Abyss</span>
+            </div>
+            <div id="top-bar-right">
+                <span id="phase-indicator">Loading</span>
+                <button id="settings-btn" title="Settings">&#9881;</button>
+            </div>
+        </div>
+
+        <!-- Middle Section (spacer + overlays) -->
+        <div id="hud-middle">
+            <!-- Enemy Turn Banner -->
+            <div id="enemy-turn-banner">Enemy Turn</div>
+
+            <!-- Attack Preview Tooltip -->
+            <div id="attack-preview">
+                <div id="attack-preview-chance">70%</div>
+                <div id="attack-preview-label">Hit Chance</div>
+                <div id="attack-preview-breakdown"></div>
+            </div>
+
+            <!-- Notification Toasts -->
+            <div id="notification-container"></div>
+        </div>
+
+        <!-- Bottom Section -->
+        <div id="hud-bottom">
+            <!-- Unit Card (bottom-left) -->
+            <div id="unit-card">
+                <div id="unit-card-header">
+                    <span id="unit-card-name">Acolyte</span>
+                    <span id="unit-card-faction">Order of the Abyss</span>
+                </div>
+                <div id="unit-card-hp-section">
+                    <div id="unit-card-hp-label">
+                        <span>HP</span>
+                        <span id="unit-card-hp-text">10 / 10</span>
+                    </div>
+                    <div id="unit-card-hp-bar">
+                        <div id="unit-card-hp-fill" style="width: 100%"></div>
+                        <div id="unit-card-hp-segments"></div>
+                    </div>
+                </div>
+                <div id="unit-card-ap-section">
+                    <div id="unit-card-ap-label">Action Points</div>
+                    <div id="unit-card-ap-pips"></div>
+                </div>
+                <div id="unit-card-status" class="status-ready">Ready</div>
+            </div>
+
+            <!-- Action Bar (bottom-center) -->
+            <div id="action-bar">
+                <button class="action-btn disabled" id="btn-shoot" data-action="shoot">
+                    <span class="action-btn-icon">&#9899;</span>
+                    <span class="action-btn-label">Shoot</span>
+                </button>
+                <button class="action-btn disabled" id="btn-melee" data-action="melee">
+                    <span class="action-btn-icon">&#9876;</span>
+                    <span class="action-btn-label">Melee</span>
+                </button>
+                <div class="action-bar-separator"></div>
+                <button class="action-btn disabled" id="btn-overwatch" data-action="overwatch">
+                    <span class="action-btn-icon">&#9673;</span>
+                    <span class="action-btn-label">Overwatch</span>
+                </button>
+                <button class="action-btn disabled" id="btn-hunker" data-action="hunker">
+                    <span class="action-btn-icon">&#9644;</span>
+                    <span class="action-btn-label">Hunker</span>
+                </button>
+                <div class="action-bar-separator"></div>
+                <button class="action-btn disabled" id="btn-end-turn" data-action="endTurn">
+                    <span class="action-btn-icon">&#9654;</span>
+                    <span class="action-btn-label">End Turn</span>
+                </button>
+            </div>
+
+            <!-- Unit Roster (bottom-right) -->
+            <div id="unit-roster">
+                <div class="roster-faction" id="roster-player">
+                    <span class="roster-faction-label">Abyss</span>
+                    <div class="roster-pips" id="roster-player-pips"></div>
+                </div>
+                <div class="roster-faction" id="roster-enemy">
+                    <span class="roster-faction-label">Germani</span>
+                    <div class="roster-pips" id="roster-enemy-pips"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating UI (healthbars, damage numbers positioned via JS) -->
+    <div id="floating-ui-container"></div>
+    <div id="damage-numbers-container"></div>
+
+    <!-- Turn Transition Overlay -->
+    <div id="turn-transition">
+        <div id="turn-transition-text">Turn 1</div>
+        <div id="turn-transition-sub">Order of the Abyss</div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen">
+        <div id="game-over-title" class="victory">Victory</div>
+        <div id="game-over-subtitle">All enemies eliminated</div>
+        <button id="game-over-restart" class="hud-interactive">Restart</button>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal">
+        <div id="settings-panel">
+            <div id="settings-title">Settings</div>
+            <div class="settings-row">
+                <span class="settings-label">Master Volume</span>
+                <input type="range" class="settings-slider" id="settings-volume" min="0" max="100" value="80">
+            </div>
+            <div class="settings-row">
+                <span class="settings-label">SFX Volume</span>
+                <input type="range" class="settings-slider" id="settings-sfx" min="0" max="100" value="80">
+            </div>
+            <div class="settings-row">
+                <span class="settings-label">Camera Speed</span>
+                <input type="range" class="settings-slider" id="settings-cam-speed" min="1" max="100" value="50">
+            </div>
+            <button class="settings-btn danger" id="settings-quit">Quit to Menu</button>
+            <button class="settings-btn" id="settings-close">Close</button>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div id="loading-title">Slimline Tactical</div>
+        <div id="loading-bar-container">
+            <div id="loading-bar-fill"></div>
+        </div>
+        <div id="loading-status">Initializing...</div>
+    </div>
+
+    <!-- Game Entry Point -->
+    <script type="module" src="js/game/main.js"></script>
+</body>
+</html>
