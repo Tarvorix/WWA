@@ -2,12 +2,6 @@
 // Sets up renderer, scene, lighting, post-processing, game loop, and all systems
 
 import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-// import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js'; // Disabled — causes black ground with ortho camera
 
 import { CONSTANTS } from '../shared/constants.js';
 import { EventBus, degToRad } from '../shared/utils.js';
@@ -46,7 +40,6 @@ const gameState = {
 let renderer, scene, clock;
 let cameraController, gridManager, inputManager;
 let mapLoader, proceduralGenerator;
-let composer;
 let unitManager, combatSystem, turnManager, aiController, vfxManager, uiManager;
 
 // Loading screen references
@@ -136,9 +129,8 @@ async function init() {
         console.log('[Main] Camera position:', cameraController.getCamera().position);
         console.log('[Main] Camera zoom:', cameraController.currentZoom);
 
-        // 10. Set up post-processing pipeline
-        updateLoadingProgress('Setting up post-processing...', 0.65);
-        setupPostProcessing();
+        // 10. Post-processing — disabled (WebGL EffectComposer not compatible with WebGPU renderer)
+        // Will need node-based post-processing when re-enabled
 
         // 11. Create VFX Manager
         vfxManager = new VFXManager(scene);
@@ -846,10 +838,6 @@ function onWindowResize() {
 
     renderer.setSize(width, height);
     cameraController.resize(width, height);
-
-    if (composer) {
-        composer.setSize(width, height);
-    }
 }
 
 // ============================================================
@@ -868,24 +856,8 @@ function gameLoop() {
     if (turnManager) turnManager.update(deltaTime);
     updateAtmosphere(deltaTime);
 
-    // Update film grain time uniform
-    if (composer && composer.passes) {
-        for (const pass of composer.passes) {
-            if (pass.uniforms && pass.uniforms.time) {
-                pass.uniforms.time.value = clock.elapsedTime;
-            }
-        }
-    }
-
-    // Render — post-processing DISABLED until base scene visibility is confirmed
-    // Once the ground plane, units, and lighting are all clearly visible,
-    // re-enable by setting usePostProcessing = true
-    const usePostProcessing = false;
-    if (usePostProcessing && composer) {
-        composer.render();
-    } else {
-        renderer.render(scene, cameraController.getCamera());
-    }
+    // Render
+    renderer.renderAsync(scene, cameraController.getCamera());
 }
 
 // ============================================================
