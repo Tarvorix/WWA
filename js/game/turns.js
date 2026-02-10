@@ -666,9 +666,11 @@ export class TurnManager {
                 // Already in someone's activation
                 if (unit.faction === this.gameState.playerFaction && unit.alive && !unit.activated) {
                     if (this.gameState.activeUnit && this.gameState.activeUnit.id !== unit.id) {
-                        // Clicked a different friendly unit — show its card
-                        this.unitManager.selectUnit(unit);
-                        this.uiManager.showUnitCard(unit);
+                        // Clicked a different friendly unit — switch activation to them.
+                        // This is essential for touch users who have no right-click/Escape
+                        // to cancel the current selection before picking a new unit.
+                        this.gridManager.clearHighlights();
+                        this.beginPlayerActivation(unit);
                     }
                     // Clicking the same active unit does nothing (movement tiles are shown)
                 }
