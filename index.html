@@ -8,7 +8,8 @@
     <script type="importmap">
     {
         "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.module.js",
+            "three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.webgpu.js",
+            "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.tsl.js",
             "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.182.0/examples/jsm/"
         }
     }
@@ -159,39 +160,6 @@
         </div>
         <div id="loading-status">Initializing...</div>
     </div>
-
-    <!-- Debug: catch errors + track reloads -->
-    <script>
-    (function() {
-        // Track reload count via sessionStorage
-        var count = parseInt(sessionStorage.getItem('_loadCount') || '0', 10) + 1;
-        sessionStorage.setItem('_loadCount', count);
-        sessionStorage.setItem('_loadTime', Date.now());
-
-        // Show load count + previous reload reason in the title (won't be overwritten by loading progress)
-        var title = document.getElementById('loading-title');
-        var reason = sessionStorage.getItem('_unloadReason');
-        if (title && count > 1) {
-            title.textContent = 'Load #' + count + (reason ? ' — ' + reason : ' — unknown cause');
-        }
-        sessionStorage.removeItem('_unloadReason');
-
-        // Track WHY the page unloads
-        window.addEventListener('beforeunload', function() {
-            sessionStorage.setItem('_unloadReason', 'beforeunload at ' + (Date.now() - parseInt(sessionStorage.getItem('_loadTime') || '0', 10)) + 'ms');
-        });
-
-        // Error handlers
-        window.onerror = function(msg, src, line, col, err) {
-            var d = document.getElementById('loading-status');
-            if (d) { d.style.color = '#ff4444'; d.textContent = msg + ' (' + src + ':' + line + ')'; }
-        };
-        window.addEventListener('unhandledrejection', function(e) {
-            var d = document.getElementById('loading-status');
-            if (d) { d.style.color = '#ff4444'; d.textContent = 'Promise: ' + (e.reason && e.reason.message || e.reason); }
-        });
-    })();
-    </script>
 
     <!-- Game Entry Point -->
     <script type="module" src="js/game/main.js"></script>

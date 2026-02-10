@@ -62,17 +62,17 @@ async function init() {
     try {
         updateLoadingProgress('Initializing renderer...', 0);
 
-        // 1. Create Renderer
-        renderer = new THREE.WebGLRenderer({
+        // 1. Create Renderer (WebGPU with automatic WebGL2 fallback)
+        renderer = new THREE.WebGPURenderer({
             antialias: CONSTANTS.RENDERER.antialias,
             powerPreference: 'high-performance'
         });
+        await renderer.init();
 
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        // Tone mapping — use Linear (no tone mapping) for now to avoid crushing dark values
-        // ACES Filmic aggressively darkens mid-tones and can make ground invisible
+        // Tone mapping
         renderer.toneMapping = THREE.LinearToneMapping;
         renderer.toneMappingExposure = CONSTANTS.RENDERER.toneMappingExposure;
 
@@ -83,30 +83,12 @@ async function init() {
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-        // Background — use a dark blue-purple so we can distinguish it from a "black" ground
+        // Background
         renderer.setClearColor(0x1a0a2e);
 
         // Append canvas to container
         const container = document.getElementById('game-container');
         container.appendChild(renderer.domElement);
-
-        // WebGL context loss detection
-        const canvas = renderer.domElement;
-        canvas.addEventListener('webglcontextlost', (e) => {
-            e.preventDefault();
-            console.error('[CRASH] WebGL context LOST');
-            const title = document.getElementById('loading-title');
-            if (title) title.textContent = 'WebGL CONTEXT LOST';
-            const status = document.getElementById('loading-status');
-            if (status) { status.style.color = '#ff4444'; status.textContent = 'GPU killed the rendering context'; }
-            const ls = document.getElementById('loading-screen');
-            if (ls) { ls.style.display = 'flex'; ls.style.opacity = '1'; ls.classList.remove('fade-out'); }
-            sessionStorage.setItem('_unloadReason', 'WebGL context lost');
-        });
-        canvas.addEventListener('webglcontextrestored', () => {
-            console.log('[CRASH] WebGL context restored');
-            sessionStorage.setItem('_unloadReason', 'WebGL context lost then restored');
-        });
 
         // 2. Create Scene
         scene = new THREE.Scene();
@@ -154,15 +136,9 @@ async function init() {
         console.log('[Main] Camera position:', cameraController.getCamera().position);
         console.log('[Main] Camera zoom:', cameraController.currentZoom);
 
-        // Warm-up render: force GPU to compile shaders and upload textures for map
-        // This spreads GPU work across loading instead of slamming everything on frame 1
-        renderer.render(scene, cameraController.getCamera());
-        await new Promise(r => setTimeout(r, 50)); // yield to let GPU finish
-
-        // 10. Post-processing pipeline — SKIP setup entirely while disabled
-        // setupPostProcessing() allocates ~300 MB of GPU render targets even when
-        // usePostProcessing is false. Don't create them until post-processing is enabled.
-        // setupPostProcessing();
+        // 10. Set up post-processing pipeline
+        updateLoadingProgress('Setting up post-processing...', 0.65);
+        setupPostProcessing();
 
         // 11. Create VFX Manager
         vfxManager = new VFXManager(scene);
@@ -179,16 +155,7 @@ async function init() {
         // 13. Spawn squads
         updateLoadingProgress('Deploying units...', 0.82);
         unitManager.spawnSquad('orderOfTheAbyss');
-
-        // Warm-up render: upload first faction's textures/shaders to GPU
-        renderer.render(scene, cameraController.getCamera());
-        await new Promise(r => setTimeout(r, 50));
-
         unitManager.spawnSquad('germani');
-
-        // Warm-up render: upload second faction's textures/shaders to GPU
-        renderer.render(scene, cameraController.getCamera());
-        await new Promise(r => setTimeout(r, 50));
 
         // Register unit meshes for input raycasting
         inputManager.registerUnitMeshes(unitManager.getUnitMeshList());
@@ -240,8 +207,8 @@ async function init() {
         gameState.phase = CONSTANTS.GAME_PHASES.PLAYER_SELECT_UNIT;
         updatePhaseIndicator();
 
-        // Start game loop first so rendering works
-        gameLoop();
+        // Start game loop via renderer's animation loop
+        renderer.setAnimationLoop(gameLoop);
 
         // Then start the turn system (will trigger first activation)
         try {
@@ -890,8 +857,6 @@ function onWindowResize() {
 // ============================================================
 
 function gameLoop() {
-    requestAnimationFrame(gameLoop);
-
     const deltaTime = Math.min(clock.getDelta(), 0.1); // Cap at 100ms to prevent spiraling
 
     // Update systems
