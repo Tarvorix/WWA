@@ -160,7 +160,7 @@
         <div id="loading-status">Initializing...</div>
     </div>
 
-    <!-- iOS Debug: catch errors + track reloads -->
+    <!-- Debug: catch errors + track reloads -->
     <script>
     (function() {
         // Track reload count via sessionStorage
@@ -168,17 +168,11 @@
         sessionStorage.setItem('_loadCount', count);
         sessionStorage.setItem('_loadTime', Date.now());
 
-        // Show load count on the loading title so user can see it
+        // Show load count + previous reload reason in the title (won't be overwritten by loading progress)
         var title = document.getElementById('loading-title');
-        if (title && count > 1) {
-            title.textContent = 'Slimline Tactical (load #' + count + ')';
-        }
-
-        // Check if previous load recorded a reason for unloading
         var reason = sessionStorage.getItem('_unloadReason');
-        if (reason && count > 1) {
-            var d = document.getElementById('loading-status');
-            if (d) { d.style.color = '#ffaa00'; d.textContent = 'Reload detected: ' + reason; }
+        if (title && count > 1) {
+            title.textContent = 'Load #' + count + (reason ? ' — ' + reason : ' — unknown cause');
         }
         sessionStorage.removeItem('_unloadReason');
 
@@ -186,13 +180,6 @@
         window.addEventListener('beforeunload', function() {
             sessionStorage.setItem('_unloadReason', 'beforeunload at ' + (Date.now() - parseInt(sessionStorage.getItem('_loadTime') || '0', 10)) + 'ms');
         });
-
-        // Intercept location.reload to record it
-        var origReload = window.location.reload.bind(window.location);
-        window.location.reload = function() {
-            sessionStorage.setItem('_unloadReason', 'location.reload() called');
-            origReload();
-        };
 
         // Error handlers
         window.onerror = function(msg, src, line, col, err) {
